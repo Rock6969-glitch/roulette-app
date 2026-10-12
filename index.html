@@ -402,7 +402,7 @@
                 if (nextSpinTimer) clearTimeout(nextSpinTimer);
                 
                 nextSpinTimer = setTimeout(() => {
-                    document.getElementById('resultModal'].classList.add('hidden');
+                    document.getElementById('resultModal').classList.add('hidden');
                     stopFireworks();
 
                     if (isInfinite || remainingAutoCount > 1) {
@@ -443,7 +443,6 @@
                 btn.textContent = "∞ 無限: OFF";
                 btn.className = "px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-gray-300 bg-black/40 hover:bg-white/10 transition-all shrink-0";
                 input.disabled = false;
-                input.classList.add('opacity-40'); // 修正：クラス調整
                 input.classList.remove('opacity-40');
             }
         }
