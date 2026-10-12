@@ -92,7 +92,7 @@
                         <span class="text-xs text-gray-200 font-bold">🔄 オート連チャン設定</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- 回数入力（数値） -->
+                        <!-- 回数入力 -->
                         <div class="flex items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 flex-1">
                             <input type="number" id="autoCountInput" value="5" min="1" max="9999" class="w-12 bg-transparent text-center text-xs md:text-sm text-white focus:outline-none">
                             <span class="text-xs text-gray-400">回</span>
@@ -142,7 +142,7 @@
             <div id="modalHeader" class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
             <div id="resultText" class="text-4xl font-black text-white neon-text break-words w-full py-2"></div>
             <button onclick="closeResultModal()" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
-                閉じる (続ける)
+                閉じる (手動停止)
             </button>
         </div>
     </div>
@@ -172,7 +172,7 @@
         let isAutoSpinning = false;
         let isInfinite = false;
         let remainingAutoCount = 0;
-        let autoTimeout = null;
+        let autoStepTimeout = null;
 
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
@@ -348,7 +348,7 @@
 
         function animateSpin(currentTime) {
             const elapsed = currentTime - startTime;
-            const duration = 3000;
+            const duration = 2500; // 2.5秒でテンポよく回転
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
@@ -395,7 +395,7 @@
             const headerEl = document.getElementById('modalHeader');
             if (isAutoSpinning) {
                 if (isInfinite) {
-                    headerEl.textContent = `✨ AUTO (無限モード) ✨`;
+                    headerEl.textContent = `✨ AUTO (無限モード稼働中) ✨`;
                 } else {
                     headerEl.textContent = `✨ AUTO (残り ${remainingAutoCount}回) ✨`;
                 }
@@ -408,29 +408,35 @@
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
 
+            // オートスピン中の場合：結果表示後、自動でモーダルを閉じて次の回転へ
             if (isAutoSpinning) {
-                autoTimeout = setTimeout(() => {
-                    closeResultModal();
-                    
+                if (autoStepTimeout) clearTimeout(autoStepTimeout);
+                autoStepTimeout = setTimeout(() => {
+                    document.getElementById('resultModal').classList.add('hidden');
+                    stopFireworks();
+
                     if (isInfinite || remainingAutoCount > 1) {
                         if (!isInfinite) remainingAutoCount--;
-                        autoTimeout = setTimeout(() => {
+                        // 少しウェイトを置いてから次を回す
+                        autoStepTimeout = setTimeout(() => {
                             if (isAutoSpinning) startSpin();
-                        }, 800);
+                        }, 500);
                     } else {
                         stopAutoSpin();
                     }
-                }, 1800);
+                }, 1500);
             }
         }
 
         function closeResultModal() {
-            if (autoTimeout) clearTimeout(autoTimeout);
+            if (autoStepTimeout) clearTimeout(autoStepTimeout);
+            if (isAutoSpinning) {
+                stopAutoSpin(); // 手動で「閉じる」を押した場合はオートも停止する
+            }
             document.getElementById('resultModal').classList.add('hidden');
             stopFireworks();
         }
 
-        // 無限モードの切り替え
         function toggleInfiniteMode() {
             isInfinite = !isInfinite;
             const btn = document.getElementById('infiniteToggleBtn');
@@ -471,7 +477,6 @@
             btn.className = "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-400 hover:to-pink-500 text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0";
             
             document.getElementById('autoCountInput').disabled = true;
-            document.getElementById('infiniteToggleBtn.disabled', true);
 
             startSpin();
         }
@@ -479,7 +484,7 @@
         function stopAutoSpin() {
             isAutoSpinning = false;
             remainingAutoCount = 0;
-            if (autoTimeout) clearTimeout(autoTimeout);
+            if (autoStepTimeout) clearTimeout(autoStepTimeout);
 
             const btn = document.getElementById('autoSpinBtn');
             btn.textContent = "自動スタート";
@@ -488,6 +493,8 @@
             if (!isInfinite) {
                 document.getElementById('autoCountInput').disabled = false;
             }
+            document.getElementById('resultModal').classList.add('hidden');
+            stopFireworks();
         }
 
         function startFireworks() {
