@@ -175,12 +175,16 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // 同梱した音声ファイル（tick.mp3）を読み込む
-        const tickSound = new Audio('./tick.mp3');
-        tickSound.volume = 0.6;
-
-        let activeAudioClones = [];
-        let lastPlayedAngle = 0; // 最後に音を鳴らした角度を記録
+        // 音声要素をあらかじめ複数プールして重複＆鳴りっぱなしを完全防止
+        const audioPool = [];
+        const poolSize = 5;
+        for (let i = 0; i < poolSize; i++) {
+            let audio = new Audio('./tick.mp3');
+            audio.volume = 0.6;
+            audioPool.push(audio);
+        }
+        let audioPoolIndex = 0;
+        let lastPlayedAngle = 0;
 
         // オートスピン用変数
         let isAutoSpinning = false;
@@ -193,34 +197,33 @@
         const colors = ["#ec4899", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
 
         function playTickSound() {
+            if (!isSpinning) return; // 回転中でなければ絶対に鳴らさない
             try {
-                let soundClone = tickSound.cloneNode();
-                soundClone.volume = 0.6;
-                activeAudioClones.push(soundClone);
-                
-                soundClone.onended = () => {
-                    activeAudioClones = activeAudioClones.filter(a => a !== soundClone);
-                };
-
-                soundClone.play().catch(e => {});
+                let audio = audioPool[audioPoolIndex];
+                audioPoolIndex = (audioPoolIndex + 1) % poolSize;
+                audio.pause();
+                audio.currentTime = 0;
+                audio.play().catch(e => {});
             } catch(e) {}
         }
 
+        // すべての音を強制停止する関数
         function stopAllTickSounds() {
-            activeAudioClones.forEach(audio => {
+            audioPool.forEach(audio => {
                 try {
                     audio.pause();
                     audio.currentTime = 0;
                 } catch(e) {}
             });
-            activeAudioClones = [];
         }
 
         function playWinFanfare() {
             try {
-                let soundClone = tickSound.cloneNode();
-                soundClone.volume = 0.8;
-                soundClone.play().catch(e => {});
+                let audio = audioPool[0];
+                audio.pause();
+                audio.currentTime = 0;
+                audio.volume = 0.8;
+                audio.play().catch(e => {});
             } catch(e) {}
         }
 
@@ -353,20 +356,22 @@
 
             targetAngle = currentAngle + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2;
             startAngleVal = currentAngle;
-            lastPlayedAngle = currentAngle; // 回転開始時の角度を基準にする
+            lastPlayedAngle = currentAngle;
             startTime = performance.now();
             requestAnimationFrame(animateSpin);
         }
 
         function animateSpin(currentTime) {
+            if (!isSpinning) return; // 念のための安全ガード
+
             const elapsed = currentTime - startTime;
             const duration = 2000;
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            // ルーレットが一定の角度（約15度＝0.26ラジアン）回るごとに1回だけ音を鳴らす
-            const angleStep = 0.26; 
+            // 一定の角度（約0.3ラジアン）進んだときに1回だけ鳴らす
+            const angleStep = 0.3;
             if (Math.abs(currentAngle - lastPlayedAngle) >= angleStep) {
                 playTickSound();
                 lastPlayedAngle = currentAngle;
@@ -379,12 +384,13 @@
             } else {
                 isSpinning = false;
                 document.getElementById('centerSpinBtn').disabled = false;
-                stopAllTickSounds();
+                stopAllTickSounds(); // 回転終了時に確実に停止
                 determineWinner();
             }
         }
 
         function determineWinner() {
+            stopAllTickSounds();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
             const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
@@ -408,7 +414,8 @@
         }
 
         function showResultModal(item) {
-            stopAllTickSounds();
+            isSpinning = false;
+            stopAllTickSounds(); // モーダル表示時に音を確実に完全停止
             playWinFanfare();
             speakResult(item.name);
             
@@ -451,6 +458,7 @@
         }
 
         function closeResultModal() {
+            isSpinning = false;
             stopAllTickSounds();
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
@@ -504,6 +512,7 @@
         }
 
         function stopAutoSpin() {
+            isSpinning = false;
             stopAllTickSounds();
             isAutoSpinning = false;
             remainingAutoCount = 0;
