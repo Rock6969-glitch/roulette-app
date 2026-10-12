@@ -88,7 +88,7 @@
         <div class="w-full glass-panel rounded-2xl p-4 flex flex-col gap-3 shadow-xl">
             <h2 class="text-sm font-bold text-gray-200 flex items-center justify-between">
                 <span>📋 選択肢と大きさ（重み）の調整</span>
-                <span id="itemCount" class="text-xs px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">4件</span>
+                <span id="itemCount" class="text-xs px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">0件</span>
             </h2>
 
             <!-- 新規追加フォーム -->
@@ -113,7 +113,7 @@
         <!-- 花火キャンバス -->
         <canvas id="fireworksCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
         
-        <div class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-4 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
+        <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-4 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
             <div class="text-xs tracking-widest text-pink-400 font-bold uppercase">🎉 WINNER 🎉</div>
             <div id="resultText" class="text-3xl font-black text-white neon-text break-words w-full"></div>
             <p class="text-xs text-gray-400">おめでとうございます！</p>
@@ -140,14 +140,18 @@
 
         let currentAngle = 0;
         let isSpinning = false;
+        let spinSpeed = 0;
+        let startAngleVal = 0;
+        let targetAngle = 0;
+        let startTime = 0;
+        let audioCtx = null;
+        let fireworksAnimId = null;
+
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
-
-        // カラーパレット
         const colors = ["#ec4899", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
 
         // Web Audio API によるサウンド生成
-        let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -157,49 +161,38 @@
             }
         }
 
-        // クリック音（回転中）
         function playTickSound() {
             if (!audioCtx) return;
-            try {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.03);
-                
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.03);
-            } catch(e) {}
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.03);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.03);
         }
 
-        // 当選ファンファーレ音
         function playWinFanfare() {
             if (!audioCtx) return;
-            try {
-                const notes = [523.25, 659.25, 783.99, 1046.50]; // ド・ミ・ソ・高ド
-                notes.forEach((freq, index) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.12);
-                    
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + index * 0.12);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.12 + 0.4);
-                    
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(audioCtx.currentTime + index * 0.12);
-                    osc.stop(audioCtx.currentTime + index * 0.12 + 0.4);
-                });
-            } catch(e) {}
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // ド・ミ・ソ・高ド
+            notes.forEach((freq, index) => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.12);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + index * 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.12 + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + index * 0.12);
+                osc.stop(audioCtx.currentTime + index * 0.12 + 0.4);
+            });
         }
 
-        // ルーレット描画
         function drawRoulette() {
             const activeItems = items.filter(i => !i.eliminated);
             const width = canvas.width;
@@ -215,33 +208,27 @@
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('選択肢がありません', centerX, centerY);
                 return;
             }
 
             const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
-            let startAngle = currentAngle;
+            let angleOffset = 0;
 
             activeItems.forEach((item, index) => {
                 const sliceAngle = (item.weight / totalWeight) * Math.PI * 2;
+                const startAngle = currentAngle + angleOffset;
                 const endAngle = startAngle + sliceAngle;
 
-                // セクター描画
                 ctx.beginPath();
                 ctx.moveTo(centerX, centerY);
                 ctx.arc(centerX, centerY, radius, startAngle, endAngle);
                 ctx.closePath();
-                ctx.fillStyle = item.color || colors[index % colors.length];
+                ctx.fillStyle = item.color;
                 ctx.fill();
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.stroke();
 
-                // テキスト描画
                 ctx.save();
                 ctx.translate(centerX, centerY);
                 ctx.rotate(startAngle + sliceAngle / 2);
@@ -250,30 +237,21 @@
                 ctx.font = 'bold 12px sans-serif';
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                 ctx.shadowBlur = 4;
-                
-                // 文字が長すぎる場合は省略
-                let displayName = item.name;
-                if (displayName.length > 8) {
-                    displayName = displayName.substring(0, 7) + '…';
-                }
-                ctx.fillText(displayName, radius - 15, 4);
+                ctx.fillText(item.name.length > 8 ? item.name.substring(0, 7) + '…' : item.name, radius - 15, 4);
                 ctx.restore();
 
-                startAngle = endAngle;
+                angleOffset += sliceAngle;
             });
         }
 
-        // リストとUIの更新
         function updateUI() {
             const listEl = document.getElementById('itemList');
             const countEl = document.getElementById('itemCount');
             listEl.innerHTML = '';
             countEl.textContent = `${items.length}件`;
-
             items.forEach((item, index) => {
                 const row = document.createElement('div');
                 row.className = `flex items-center justify-between gap-2 p-2 rounded-xl bg-black/30 border border-white/5 transition-opacity ${item.eliminated ? 'opacity-40' : ''}`;
-                
                 row.innerHTML = `
                     <div class="flex items-center gap-2 flex-1 min-w-0">
                         <input type="color" value="${item.color}" onchange="updateItemColor(${item.id}, this.value)" class="w-6 h-6 rounded border-0 cursor-pointer bg-transparent">
@@ -282,217 +260,102 @@
                     <div class="flex items-center gap-1.5">
                         <span class="text-[10px] text-gray-400">重み:</span>
                         <input type="number" value="${item.weight}" min="1" max="100" onchange="updateItemWeight(${item.id}, this.value)" class="w-12 bg-black/50 border border-white/10 rounded-lg text-center text-xs py-1 text-white">
-                        <button onclick="toggleEliminate(${item.id})" class="px-2 py-1 rounded-lg text-xs ${item.eliminated ? 'bg-green-600/40 text-green-300' : 'bg-yellow-600/30 text-yellow-300'} hover:opacity-80">
-                            ${item.eliminated ? '復元' : '除外'}
-                        </button>
+                        <button onclick="toggleEliminate(${item.id})" class="px-2 py-1 rounded-lg text-xs ${item.eliminated ? 'bg-green-600/40 text-green-300' : 'bg-yellow-600/30 text-yellow-300'} hover:opacity-80">${item.eliminated ? '復元' : '除外'}</button>
                         <button onclick="deleteItem(${item.id})" class="text-red-400 hover:text-red-300 px-1.5 py-1 text-xs">✕</button>
-                    </div>
-                `;
+                    </div>`;
                 listEl.appendChild(row);
             });
             drawRoulette();
         }
 
-        // 選択肢操作関数
         function addItem() {
-            const nameInput = document.getElementById('newItemName');
-            const weightInput = document.getElementById('newItemWeight');
-            const name = nameInput.value.trim();
-            const weight = parseInt(weightInput.value) || 1;
-
+            const name = document.getElementById('newItemName').value.trim();
+            const weight = parseInt(document.getElementById('newItemWeight').value) || 1;
             if (!name) return;
-
-            const newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
-            const color = colors[items.length % colors.length];
-
-            items.push({ id: newId, name, weight, color, eliminated: false });
-            nameInput.value = '';
-            weightInput.value = '1';
+            items.push({ id: items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1, name, weight, color: colors[items.length % colors.length], eliminated: false });
             updateUI();
         }
 
-        function deleteItem(id) {
-            items = items.filter(i => i.id !== id);
-            updateUI();
-        }
+        function deleteItem(id) { items = items.filter(i => i.id !== id); updateUI(); }
+        function toggleEliminate(id) { const item = items.find(i => i.id === id); if (item) { item.eliminated = !item.eliminated; updateUI(); } }
+        function resetEliminated() { items.forEach(i => i.eliminated = false); updateUI(); }
+        function updateItemWeight(id, val) { const item = items.find(i => i.id === id); if (item) { item.weight = Math.max(1, parseInt(val) || 1); updateUI(); } }
+        function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
-        function toggleEliminate(id) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item.eliminated = !item.eliminated;
-                updateUI();
-            }
-        }
-
-        function resetEliminated() {
-            items.forEach(i => i.eliminated = false);
-            updateUI();
-        }
-
-        function updateItemWeight(id, val) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item.weight = Math.max(1, parseInt(val) || 1);
-                updateUI();
-            }
-        }
-
-        function updateItemColor(id, val) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item.color = val;
-                drawRoulette();
-            }
-        }
-
-        // ルーレット回転処理
-        let lastTickAngle = 0;
         function startSpin() {
             if (isSpinning) return;
             initAudio();
-
             const activeItems = items.filter(i => !i.eliminated);
-            if (activeItems.length === 0) {
-                alert('有効な選択肢がありません！');
-                return;
-            }
-
+            if (activeItems.length === 0) return;
             isSpinning = true;
             document.getElementById('centerSpinBtn').disabled = true;
-
-            const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
-            
-            // ランダム回転量（5回転〜10回転 ＋ ランダム角度）
-            const extraSpins = (5 + Math.random() * 5) * Math.PI * 2;
-            const targetAngle = currentAngle + extraSpins + Math.random() * Math.PI * 2;
-            
-            const duration = 4000; // 4秒
-            const startTime = performance.now();
-            const startAngleVal = currentAngle;
-
-            function animateSpin(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // イージング（だんだん減速）
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
-
-                // カチカチ音の制御（境界をまたぐごとに再生）
-                if (currentAngle - lastTickAngle > 0.15) {
-                    playTickSound();
-                    lastTickAngle = currentAngle;
-                }
-
-                drawRoulette();
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateSpin);
-                } else {
-                    isSpinning = false;
-                    document.getElementById('centerSpinBtn').disabled = false;
-                    determineWinner(activeItems, totalWeight);
-                }
-            }
-
+            targetAngle = currentAngle + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2;
+            startAngleVal = currentAngle;
+            startTime = performance.now();
             requestAnimationFrame(animateSpin);
         }
 
-        // 当選判定
-        function determineWinner(activeItems, totalWeight) {
-            // 針の位置（上部 = -PI/2 または 1.5PI）に一致する項目を計算
-            const normalizedAngle = (2 * Math.PI - (currentAngle % (Math.PI * 2))) % (Math.PI * 2);
-            
-            let accumulatedWeight = 0;
-            let winningItem = activeItems[0];
-
-            for (let item of activeItems) {
-                const sliceAngle = (item.weight / totalWeight) * Math.PI * 2;
-                accumulatedWeight += sliceAngle;
-                if (normalizedAngle <= accumulatedWeight) {
-                    winningItem = item;
-                    break;
-                }
-            }
-
-            // 当選演出＆サウンド
-            playWinFanfare();
-            showResultModal(winningItem.name);
+        function animateSpin(currentTime) {
+            const elapsed = currentTime - startTime;
+            const duration = 4000;
+            const progress = Math.min(elapsed / duration, 1);
+            spinSpeed = (1 - Math.pow(1 - progress, 3));
+            currentAngle = startAngleVal + (targetAngle - startAngleVal) * spinSpeed;
+            if (Math.random() < spinSpeed * 0.2) playTickSound();
+            drawRoulette();
+            if (progress < 1) requestAnimationFrame(animateSpin);
+            else { isSpinning = false; document.getElementById('centerSpinBtn').disabled = false; determineWinner(); }
         }
 
-        // ポップアップ＆花火表示
-        function showResultModal(winnerName) {
-            const modal = document.getElementById('resultModal');
-            const resultText = document.getElementById('resultText');
-            resultText.textContent = winnerName;
-            modal.classList.remove('hidden');
+        function determineWinner() {
+            const activeItems = items.filter(i => !i.eliminated);
+            if (activeItems.length === 0) return;
+            const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
+            let normalizedAngle = (3 * Math.PI / 2 - currentAngle) % (2 * Math.PI);
+            while (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
+            
+            let angleOffset = 0;
+            for (let item of activeItems) {
+                const sliceAngle = (item.weight / totalWeight) * Math.PI * 2;
+                if (normalizedAngle >= angleOffset && normalizedAngle < angleOffset + sliceAngle) {
+                    showResultModal(item);
+                    return;
+                }
+                angleOffset += sliceAngle;
+            }
+        }
+
+        function showResultModal(item) {
+            playWinFanfare();
+            document.getElementById('resultText').textContent = item.name;
+            document.getElementById('modalContent').style.borderColor = item.color;
+            document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
         }
 
         function closeResultModal() {
-            const modal = document.getElementById('resultModal');
-            modal.classList.add('hidden');
+            document.getElementById('resultModal').classList.add('hidden');
             stopFireworks();
         }
 
-        // 花火エフェクト簡易実装
-        let fireworksAnimId = null;
         function startFireworks() {
             const fwCanvas = document.getElementById('fireworksCanvas');
             const fwCtx = fwCanvas.getContext('2d');
             fwCanvas.width = window.innerWidth;
             fwCanvas.height = window.innerHeight;
-
             let particles = [];
-            for (let i = 0; i < 80; i++) {
-                particles.push({
-                    x: fwCanvas.width / 2,
-                    y: fwCanvas.height / 2,
-                    vx: (Math.random() - 0.5) * 12,
-                    vy: (Math.random() - 0.5) * 12,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    alpha: 1,
-                    size: Math.random() * 4 + 2
-                });
-            }
-
+            for (let i = 0; i < 80; i++) particles.push({ x: fwCanvas.width / 2, y: fwCanvas.height / 2, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, color: colors[Math.floor(Math.random() * colors.length)], alpha: 1, size: Math.random() * 4 + 2 });
             function loop() {
                 fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
-                particles.forEach(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.2; // 重力
-                    p.alpha -= 0.015;
-                    if (p.alpha < 0) p.alpha = 0;
-
-                    fwCtx.save();
-                    fwCtx.globalAlpha = p.alpha;
-                    fwCtx.fillStyle = p.color;
-                    fwCtx.beginPath();
-                    fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    fwCtx.fill();
-                    fwCtx.restore();
-                });
+                particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.alpha -= 0.015; if (p.alpha > 0) { fwCtx.save(); fwCtx.globalAlpha = p.alpha; fwCtx.fillStyle = p.color; fwCtx.beginPath(); fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2); fwCtx.fill(); fwCtx.restore(); } });
                 fireworksAnimId = requestAnimationFrame(loop);
             }
             loop();
         }
 
-        function stopFireworks() {
-            if (fireworksAnimId) {
-                cancelAnimationFrame(fireworksAnimId);
-            }
-        }
+        function stopFireworks() { if (fireworksAnimId) cancelAnimationFrame(fireworksAnimId); }
 
-        // スペースキーでも回せるショートカット
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
-                e.preventDefault();
-                startSpin();
-            }
-        });
-
-        // 初期描画
+        window.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); startSpin(); } });
         updateUI();
     </script>
 </body>
