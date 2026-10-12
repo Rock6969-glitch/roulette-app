@@ -172,7 +172,7 @@
         let isAutoSpinning = false;
         let isInfinite = false;
         let remainingAutoCount = 0;
-        let autoStepTimer = null;
+        let nextSpinTimer = null;
 
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
@@ -331,10 +331,10 @@
         function updateItemWeight(id, val) { const item = items.find(i => i.id === id); if (item) { item.weight = Math.max(1, parseInt(val) || 1); updateUI(); } }
         function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
-        // 通常スピンボタンが押されたとき
         function handleSpinClick() {
             if (isAutoSpinning) {
-                stopAutoSpin(); // オート中に通常ボタンを押したらオート停止
+                stopAutoSpin();
+                return;
             }
             startSpin();
         }
@@ -356,7 +356,7 @@
 
         function animateSpin(currentTime) {
             const elapsed = currentTime - startTime;
-            const duration = 2500;
+            const duration = 2000; // 2秒でよりスピーディに連チャン
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
@@ -403,7 +403,7 @@
             const headerEl = document.getElementById('modalHeader');
             if (isAutoSpinning) {
                 if (isInfinite) {
-                    headerEl.textContent = `✨ AUTO (無限モード稼働中) ✨`;
+                    headerEl.textContent = `✨ AUTO (無限モード) ✨`;
                 } else {
                     headerEl.textContent = `✨ AUTO (残り ${remainingAutoCount}回) ✨`;
                 }
@@ -416,28 +416,33 @@
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
 
-            // オートスピン中の場合、1.2秒後に自動でモーダルを閉じて次の回転へ
+            // --- オート連チャンの継続判定 ---
             if (isAutoSpinning) {
-                if (autoStepTimer) clearTimeout(autoStepTimer);
-                autoStepTimer = setTimeout(() => {
+                if (nextSpinTimer) clearTimeout(nextSpinTimer);
+                
+                // 1秒間結果を表示したあと、自動で閉じて次を回す
+                nextSpinTimer = setTimeout(() => {
                     document.getElementById('resultModal').classList.add('hidden');
                     stopFireworks();
 
                     if (isInfinite || remainingAutoCount > 1) {
                         if (!isInfinite) remainingAutoCount--;
-                        // 少しウェイトを置いてから次のスピンへ
-                        autoStepTimer = setTimeout(() => {
-                            if (isAutoSpinning) startSpin();
-                        }, 400);
+                        
+                        // 0.3秒のインターバルを挟んで次のスピンを走らせる
+                        nextSpinTimer = setTimeout(() => {
+                            if (isAutoSpinning) {
+                                startSpin();
+                            }
+                        }, 300);
                     } else {
                         stopAutoSpin();
                     }
-                }, 1200);
+                }, 1000);
             }
         }
 
         function closeResultModal() {
-            if (autoStepTimer) clearTimeout(autoStepTimer);
+            if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
                 stopAutoSpin(); // 手動で閉じたらオートも終了
             }
@@ -486,14 +491,14 @@
             
             document.getElementById('autoCountInput').disabled = true;
 
-            // 即座に最初のスピンを開始
+            // スピン開始
             startSpin();
         }
 
         function stopAutoSpin() {
             isAutoSpinning = false;
             remainingAutoCount = 0;
-            if (autoStepTimer) clearTimeout(autoStepTimer);
+            if (nextSpinTimer) clearTimeout(nextSpinTimer);
 
             const btn = document.getElementById('autoSpinBtn');
             btn.textContent = "自動スタート";
