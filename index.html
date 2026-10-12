@@ -179,6 +179,9 @@
         const tickSound = new Audio('./tick.mp3');
         tickSound.volume = 0.6;
 
+        // 現在再生中のサウンドを管理する配列（鳴りっぱなし防止用）
+        let activeAudioClones = [];
+
         // オートスピン用変数
         let isAutoSpinning = false;
         let isInfinite = false;
@@ -193,8 +196,26 @@
             try {
                 let soundClone = tickSound.cloneNode();
                 soundClone.volume = 0.6;
+                activeAudioClones.push(soundClone);
+                
+                // 再生終了したら配列から削除
+                soundClone.onended = () => {
+                    activeAudioClones = activeAudioClones.filter(a => a !== soundClone);
+                };
+
                 soundClone.play().catch(e => {});
             } catch(e) {}
+        }
+
+        // ルーレット停止時に鳴っている音をすべて強制停止する関数
+        function stopAllTickSounds() {
+            activeAudioClones.forEach(audio => {
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                } catch(e) {}
+            });
+            activeAudioClones = [];
         }
 
         function playWinFanfare() {
@@ -324,6 +345,9 @@
 
         function startSpin() {
             if (isSpinning) return;
+            // 新しく回し始める時にも念のため前の音を止める
+            stopAllTickSounds();
+
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
 
@@ -351,6 +375,8 @@
             } else {
                 isSpinning = false;
                 document.getElementById('centerSpinBtn').disabled = false;
+                // ルーレットがピタッと止まった瞬間に鳴り残っている音を即座に消す
+                stopAllTickSounds();
                 determineWinner();
             }
         }
@@ -379,6 +405,7 @@
         }
 
         function showResultModal(item) {
+            stopAllTickSounds(); // モーダル表示時にも念のため停止
             playWinFanfare();
             speakResult(item.name);
             
@@ -421,6 +448,7 @@
         }
 
         function closeResultModal() {
+            stopAllTickSounds();
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
                 stopAutoSpin();
@@ -473,6 +501,7 @@
         }
 
         function stopAutoSpin() {
+            stopAllTickSounds();
             isAutoSpinning = false;
             remainingAutoCount = 0;
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
