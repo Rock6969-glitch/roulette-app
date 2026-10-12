@@ -187,24 +187,27 @@
             }
         }
 
-        // 送信いただいた音源（ピーという電子音）を再現した回転音
+        // こもりを解消し、クリアでシャープな電子音にブラッシュアップ
         function playTickSound() {
             if (!audioCtx) return;
             try {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'sine';
                 
-                // お送りいただいた音源に合わせたシャープでクリアな電子音の周波数
-                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // 高めのド (C6)
+                // より抜けの良いクリアな矩形波（パルス波に近い音）に変更
+                osc.type = 'square';
                 
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                // 高音のピキッとしたアタック音にするため周波数を高めに設定
+                osc.frequency.setValueAtTime(1760, audioCtx.currentTime); // A6
+                
+                // 音の輪郭をハッキリさせ、こもりをなくすためのゲイン調整
+                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.025);
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.04);
+                osc.stop(audioCtx.currentTime + 0.025);
             } catch(e) {}
         }
 
