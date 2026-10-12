@@ -187,27 +187,27 @@
             }
         }
 
-        // こもりを解消し、クリアでシャープな電子音にブラッシュアップ
+        // こもりを完全になくし、ハッキリと抜けの良い高音ビープ音を鳴らす改良版
         function playTickSound() {
             if (!audioCtx) return;
             try {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 
-                // より抜けの良いクリアな矩形波（パルス波に近い音）に変更
+                // 抜けの良い矩形波を使用
                 osc.type = 'square';
                 
-                // 高音のピキッとしたアタック音にするため周波数を高めに設定
-                osc.frequency.setValueAtTime(1760, audioCtx.currentTime); // A6
+                // 高めの周波数（ハッキリ聞こえるピキッとした音）
+                osc.frequency.setValueAtTime(1500, audioCtx.currentTime);
                 
-                // 音の輪郭をハッキリさせ、こもりをなくすためのゲイン調整
-                gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.025);
+                // 音の立ち上がりを鋭くし、こもらないように一気に減衰させる
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.025);
+                osc.stop(audioCtx.currentTime + 0.03);
             } catch(e) {}
         }
 
