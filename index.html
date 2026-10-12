@@ -89,7 +89,7 @@
                 <span id="itemCount" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">0件</span>
             </h2>
 
-            <!-- 新規追加フォーム（はみ出し完全防止レイアウト） -->
+            <!-- 新規追加フォーム -->
             <div class="flex gap-1.5 items-center">
                 <input type="text" id="newItemName" placeholder="項目名" class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-pink-500 transition-colors">
                 <div class="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 shrink-0">
@@ -152,19 +152,26 @@
             }
         }
 
+        // ピコピコした楽しいクリック音（回転中）
         function playTickSound() {
             if (!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.03);
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.03);
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'square'; // ファミコンのようなレトロでピコピコした矩形波
+                
+                // 高めの音程でリズミカルに鳴らす
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.04);
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch(e) {}
         }
 
         function playWinFanfare() {
@@ -314,7 +321,8 @@
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            if (Math.random() < 0.2) playTickSound();
+            // 回転中にピコピコ音を鳴らす頻度を調整
+            if (Math.random() < 0.25) playTickSound();
             drawRoulette();
 
             if (progress < 1) {
@@ -383,7 +391,7 @@
             }
             function loop() {
                 fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
-                particles.forEach(p => {
+                particles.group = particles.forEach(p => {
                     p.x += p.vx;
                     p.y += p.vy;
                     p.vy += 0.2;
