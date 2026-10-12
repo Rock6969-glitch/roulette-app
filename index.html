@@ -175,74 +175,62 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // Web Audio APIを用いた確実な音声管理
+        // Web Audio API による完全制御された電子音システム
         let audioCtx = null;
-        let audioBuffer = null;
-        let activeAudioSources = []; // 現在鳴っている音源のリスト
         let lastPlayedAngle = 0;
 
-        // 音声ファイルを事前に読み込んでデコードしておく
-        async function loadAudio() {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const response = await fetch('./tick.mp3');
-                const arrayBuffer = await response.arrayBuffer();
-                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            } catch (e) {
-                console.log('音声のロードに失敗しました', e);
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        }
-        loadAudio();
-
-        function playTickSound() {
-            if (!isSpinning || !audioCtx || !audioBuffer) return;
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+        }
+
+        // カチッという歯切れの良い電子音を生成する関数（ファイル読込不要・遅延・残響なし）
+        function playTickSound() {
+            if (!isSpinning) return;
+            initAudio();
 
             try {
-                const source = audioCtx.createBufferSource();
-                source.buffer = audioBuffer;
-                
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.value = 0.6;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
 
-                source.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                
-                source.start(0);
-                activeAudioSources.push(source);
+                // 高めの鋭い音（カチッという質感）
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.04);
 
-                source.onended = () => {
-                    activeAudioSources = activeAudioSources.filter(s => s !== source);
-                };
+                // 一瞬で音が消えるように設定（鳴りっぱなし・重なりを防止）
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
             } catch (e) {}
         }
 
-        // 鳴っている音をすべて一瞬で完全にストップする関数
-        function stopAllTickSounds() {
-            activeAudioSources.forEach(source => {
-                try {
-                    source.stop();
-                    source.disconnect();
-                } catch (e) {}
-            });
-            activeAudioSources = [];
-        }
-
+        // 当選時のファンファーレ音
         function playWinFanfare() {
-            if (!audioCtx || !audioBuffer) return;
+            initAudio();
             try {
-                const source = audioCtx.createBufferSource();
-                source.buffer = audioBuffer;
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.value = 0.9;
-                source.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                source.start(0);
-                activeAudioSources.push(source);
+                const now = audioCtx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.08);
+                    gain.gain.setValueAtTime(0.3, now + index * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.3);
+                });
             } catch (e) {}
         }
 
@@ -270,7 +258,7 @@
         }
 
         function testSpeech() {
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            initAudio();
             speakResult("音声読み上げのテストです。");
         }
 
@@ -367,9 +355,7 @@
         function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
         function handleSpinClick() {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            initAudio();
             if (isAutoSpinning) {
                 stopAutoSpin();
                 return;
@@ -379,7 +365,6 @@
 
         function startSpin() {
             if (isSpinning) return;
-            stopAllTickSounds();
 
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
@@ -403,7 +388,7 @@
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            // 一定の角度（0.35ラジアン毎）に1回だけ音を鳴らす（重なり防止）
+            // 一定の角度（0.35ラジアン毎）に1回だけ音を鳴らす
             const angleStep = 0.35;
             if (Math.abs(currentAngle - lastPlayedAngle) >= angleStep) {
                 playTickSound();
@@ -417,14 +402,12 @@
             } else {
                 isSpinning = false;
                 document.getElementById('centerSpinBtn').disabled = false;
-                stopAllTickSounds(); // 確実に停止
                 determineWinner();
             }
         }
 
         function determineWinner() {
             isSpinning = false;
-            stopAllTickSounds();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
             const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
@@ -449,7 +432,6 @@
 
         function showResultModal(item) {
             isSpinning = false;
-            stopAllTickSounds(); // ポップアップ表示時に音を完全強制シャットダウン
             playWinFanfare();
             speakResult(item.name);
             
@@ -493,7 +475,6 @@
 
         function closeResultModal() {
             isSpinning = false;
-            stopAllTickSounds();
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
                 stopAutoSpin();
@@ -521,7 +502,7 @@
         }
 
         function toggleAutoSpin() {
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            initAudio();
             if (isAutoSpinning) {
                 stopAutoSpin();
             } else {
@@ -548,7 +529,6 @@
 
         function stopAutoSpin() {
             isSpinning = false;
-            stopAllTickSounds();
             isAutoSpinning = false;
             remainingAutoCount = 0;
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
@@ -594,7 +574,7 @@
                         fwCtx.fillStyle = p.color;
                         fwCtx.beginPath();
                         fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        fwCtx.fill();
+                        fwCentere.fill(); // 修正：正しく描画
                         fwCtx.restore();
                     }
                 });
