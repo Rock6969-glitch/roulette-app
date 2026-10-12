@@ -57,9 +57,8 @@
 
     <main class="w-full max-w-md flex flex-col items-center gap-4 z-10 mb-4">
         
-        <!-- ルーレット本体エリア（少しコンパクトに調整） -->
+        <!-- ルーレット本体エリア -->
         <div class="relative w-72 h-72 flex items-center justify-center">
-            <!-- 針（上部中央） -->
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
                 <div class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[24px] border-t-red-500"></div>
             </div>
@@ -90,11 +89,14 @@
                 <span id="itemCount" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">0件</span>
             </h2>
 
-            <!-- 新規追加フォーム（はみ出し防止レイアウト） -->
-            <div class="flex gap-2 items-center">
-                <input type="text" id="newItemName" placeholder="項目名 (例: 当たり！)" class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500 transition-colors">
-                <input type="number" id="newItemWeight" value="1" min="1" max="100" title="重み" class="w-14 bg-black/40 border border-white/10 rounded-xl px-1 py-2 text-xs text-center focus:outline-none focus:border-pink-500 transition-colors">
-                <button onclick="addItem()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg transition-all shrink-0">
+            <!-- 新規追加フォーム（はみ出し完全防止レイアウト） -->
+            <div class="flex gap-1.5 items-center">
+                <input type="text" id="newItemName" placeholder="項目名" class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-pink-500 transition-colors">
+                <div class="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl px-2 py-1.5 shrink-0">
+                    <span class="text-[9px] text-gray-400">重み</span>
+                    <input type="number" id="newItemWeight" value="1" min="1" max="100" class="w-8 bg-transparent text-center text-xs text-white focus:outline-none">
+                </div>
+                <button onclick="addItem()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-lg transition-all shrink-0">
                     追加
                 </button>
             </div>
