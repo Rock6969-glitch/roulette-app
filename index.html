@@ -38,65 +38,69 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between p-4 selection:bg-pink-500 selection:text-white relative">
+<body class="min-h-screen flex flex-col items-center justify-between p-3 selection:bg-pink-500 selection:text-white relative">
 
     <div class="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
-    <header class="w-full max-w-md text-center py-3 z-10 flex items-center justify-between px-2">
+    <header class="w-full max-w-md text-center py-2 z-10 flex items-center justify-between px-2">
         <div>
-            <h1 class="text-xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
+            <h1 class="text-lg font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
                 ✨ LIVE ROULETTE ✨
             </h1>
-            <p class="text-[10px] text-gray-400 text-left">音声読み上げ対応版</p>
+            <p class="text-[10px] text-gray-400 text-left">カスタム対応・音声読み上げ版</p>
         </div>
-        <!-- 音声テスト用ボタン -->
         <button onclick="testSpeech()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-gray-300 border border-white/10">
             🔊 音声テスト
         </button>
     </header>
 
-    <main class="w-full max-w-md flex flex-col items-center gap-6 z-10 mb-6">
+    <main class="w-full max-w-md flex flex-col items-center gap-4 z-10 mb-4">
         
-        <div class="relative w-80 h-80 flex items-center justify-center">
+        <!-- ルーレット本体エリア（少しコンパクトに調整） -->
+        <div class="relative w-72 h-72 flex items-center justify-center">
             <!-- 針（上部中央） -->
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
-                <div class="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-red-500"></div>
+                <div class="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[24px] border-t-red-500"></div>
             </div>
             
-            <div class="relative w-72 h-72 rounded-full p-2 glass-panel neon-glow flex items-center justify-center shadow-2xl">
-                <canvas id="rouletteCanvas" width="280" height="280" class="w-full h-full rounded-full cursor-pointer transition-transform duration-75"></canvas>
-                <button id="centerSpinBtn" onclick="startSpin()" class="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-600 font-extrabold text-sm text-white shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center z-20 border-2 border-white/30">
-                    <span class="text-xs tracking-widest opacity-80">START</span>
-                    <span class="text-base">回す！</span>
+            <div class="relative w-64 h-64 rounded-full p-2 glass-panel neon-glow flex items-center justify-center shadow-2xl">
+                <canvas id="rouletteCanvas" width="240" height="240" class="w-full h-full rounded-full cursor-pointer transition-transform duration-75"></canvas>
+                <button id="centerSpinBtn" onclick="startSpin()" class="absolute w-16 h-16 rounded-full bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-600 font-extrabold text-xs text-white shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center z-20 border-2 border-white/30">
+                    <span class="text-[9px] tracking-widest opacity-80">START</span>
+                    <span class="text-sm">回す！</span>
                 </button>
             </div>
         </div>
 
-        <div class="w-full flex gap-3 px-2">
-            <button onclick="startSpin()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-sm tracking-wide">
+        <!-- アクションボタン群 -->
+        <div class="w-full flex gap-3 px-1">
+            <button onclick="startSpin()" class="flex-1 py-2.5 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-xs tracking-wide">
                 🚀 ルーレットを回す (Space)
             </button>
-            <button onclick="resetEliminated()" class="px-4 py-3 rounded-xl font-bold glass-panel hover:bg-white/10 active:scale-98 transition-all text-xs text-gray-300">
+            <button onclick="resetEliminated()" class="px-3 py-2.5 rounded-xl font-bold glass-panel hover:bg-white/10 active:scale-98 transition-all text-xs text-gray-300">
                 🔄 復活
             </button>
         </div>
 
-        <div class="w-full glass-panel rounded-2xl p-4 flex flex-col gap-3 shadow-xl">
-            <h2 class="text-sm font-bold text-gray-200 flex items-center justify-between">
-                <span>📋 選択肢と大きさ（重み）の調整</span>
-                <span id="itemCount" class="text-xs px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">0件</span>
+        <!-- 選択肢の追加・編集パネル -->
+        <div class="w-full glass-panel rounded-2xl p-3 flex flex-col gap-2.5 shadow-xl">
+            <h2 class="text-xs font-bold text-gray-200 flex items-center justify-between px-1">
+                <span>📋 選択肢と重みの調整</span>
+                <span id="itemCount" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40">0件</span>
             </h2>
 
-            <div class="flex gap-2">
-                <input type="text" id="newItemName" placeholder="項目名 (例: 当たり！)" class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-500 transition-colors">
-                <input type="number" id="newItemWeight" value="1" min="1" max="100" title="重み(大きさ)" class="w-16 bg-black/40 border border-white/10 rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:border-pink-500 transition-colors">
-                <button onclick="addItem()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all">
+            <!-- 新規追加フォーム（はみ出し防止レイアウト） -->
+            <div class="flex gap-2 items-center">
+                <input type="text" id="newItemName" placeholder="項目名 (例: 当たり！)" class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500 transition-colors">
+                <input type="number" id="newItemWeight" value="1" min="1" max="100" title="重み" class="w-14 bg-black/40 border border-white/10 rounded-xl px-1 py-2 text-xs text-center focus:outline-none focus:border-pink-500 transition-colors">
+                <button onclick="addItem()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg transition-all shrink-0">
                     追加
                 </button>
             </div>
 
-            <div id="itemList" class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1"></div>
+            <!-- リスト一覧 -->
+            <div id="itemList" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1"></div>
         </div>
 
     </main>
@@ -104,10 +108,10 @@
     <!-- 結果ポップアップ＆花火モーダル -->
     <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <canvas id="fireworksCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-        <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-5 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
-            <div class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
-            <div id="resultText" class="text-4xl font-black text-white neon-text break-words w-full py-2"></div>
-            <button onclick="closeResultModal()" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
+        <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-6 max-w-xs w-full text-center flex flex-col items-center gap-4 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
+            <div class="text-[10px] tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
+            <div id="resultText" class="text-3xl font-black text-white neon-text break-words w-full py-1"></div>
+            <button onclick="closeResultModal()" class="w-full py-2.5 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-xs">
                 閉じる (続ける)
             </button>
         </div>
@@ -178,31 +182,22 @@
             });
         }
 
-        // 確実な音声読み上げ関数
         function speakResult(text) {
             if (!('speechSynthesis' in window)) return;
-            
-            window.speechSynthesis.cancel(); // 既存の音声を停止
-            
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ja-JP';
             utterance.rate = 1.1;
             utterance.pitch = 1.0;
-
-            // iOS (Safari) などの音声エンジン対策で一度空の音声を発火させるか、明示的に日本語音声を探す
             const voices = window.speechSynthesis.getVoices();
             const jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
-            if (jpVoice) {
-                utterance.voice = jpVoice;
-            }
-
+            if (jpVoice) utterance.voice = jpVoice;
             window.speechSynthesis.speak(utterance);
         }
 
-        // テストボタン用
         function testSpeech() {
             initAudio();
-            speakResult("音声読み上げのテストです。正常に動作しています。");
+            speakResult("音声読み上げのテストです。");
         }
 
         function drawRoulette() {
@@ -211,7 +206,7 @@
             const height = canvas.height;
             const centerX = width / 2;
             const centerY = height / 2;
-            const radius = Math.min(centerX, centerY) - 8;
+            const radius = Math.min(centerX, centerY) - 6;
 
             ctx.clearRect(0, 0, width, height);
 
@@ -245,10 +240,10 @@
                 ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = 'right';
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px sans-serif';
+                ctx.font = 'bold 11px sans-serif';
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                 ctx.shadowBlur = 4;
-                ctx.fillText(item.name.length > 8 ? item.name.substring(0, 7) + '…' : item.name, radius - 15, 4);
+                ctx.fillText(item.name.length > 7 ? item.name.substring(0, 6) + '…' : item.name, radius - 12, 3.5);
                 ctx.restore();
 
                 startAngle = endAngle;
@@ -262,17 +257,17 @@
             countEl.textContent = `${items.length}件`;
             items.forEach((item) => {
                 const row = document.createElement('div');
-                row.className = `flex items-center justify-between gap-2 p-2 rounded-xl bg-black/30 border border-white/5 transition-opacity ${item.eliminated ? 'opacity-40' : ''}`;
+                row.className = `flex items-center justify-between gap-1.5 p-1.5 rounded-xl bg-black/30 border border-white/5 transition-opacity ${item.eliminated ? 'opacity-40' : ''}`;
                 row.innerHTML = `
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <input type="color" value="${item.color}" onchange="updateItemColor(${item.id}, this.value)" class="w-6 h-6 rounded border-0 cursor-pointer bg-transparent">
-                        <span class="text-sm font-medium truncate ${item.eliminated ? 'line-through text-gray-500' : 'text-gray-200'}">${item.name}</span>
+                    <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                        <input type="color" value="${item.color}" onchange="updateItemColor(${item.id}, this.value)" class="w-5 h-5 rounded border-0 cursor-pointer bg-transparent shrink-0">
+                        <span class="text-xs font-medium truncate ${item.eliminated ? 'line-through text-gray-500' : 'text-gray-200'}">${item.name}</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-[10px] text-gray-400">重み:</span>
-                        <input type="number" value="${item.weight}" min="1" max="100" onchange="updateItemWeight(${item.id}, this.value)" class="w-12 bg-black/50 border border-white/10 rounded-lg text-center text-xs py-1 text-white">
-                        <button onclick="toggleEliminate(${item.id})" class="px-2 py-1 rounded-lg text-xs ${item.eliminated ? 'bg-green-600/40 text-green-300' : 'bg-yellow-600/30 text-yellow-300'} hover:opacity-80">${item.eliminated ? '復元' : '除外'}</button>
-                        <button onclick="deleteItem(${item.id})" class="text-red-400 hover:text-red-300 px-1.5 py-1 text-xs">✕</button>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <span class="text-[9px] text-gray-400">重み:</span>
+                        <input type="number" value="${item.weight}" min="1" max="100" onchange="updateItemWeight(${item.id}, this.value)" class="w-10 bg-black/50 border border-white/10 rounded-lg text-center text-xs py-0.5 text-white">
+                        <button onclick="toggleEliminate(${item.id})" class="px-1.5 py-0.5 rounded-lg text-[10px] ${item.eliminated ? 'bg-green-600/40 text-green-300' : 'bg-yellow-600/30 text-yellow-300'} hover:opacity-80">${item.eliminated ? '復元' : '除外'}</button>
+                        <button onclick="deleteItem(${item.id})" class="text-red-400 hover:text-red-300 px-1 py-0.5 text-xs">✕</button>
                     </div>`;
                 listEl.appendChild(row);
             });
@@ -280,11 +275,14 @@
         }
 
         function addItem() {
-            const name = document.getElementById('newItemName').value.trim();
-            const weight = parseInt(document.getElementById('newItemWeight').value) || 1;
+            const nameInput = document.getElementById('newItemName');
+            const weightInput = document.getElementById('newItemWeight');
+            const name = nameInput.value.trim();
+            const weight = parseInt(weightInput.value) || 1;
             if (!name) return;
             items.push({ id: items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1, name, weight, color: colors[items.length % colors.length], eliminated: false });
-            document.getElementById('newItemName').value = '';
+            nameInput.value = '';
+            weightInput.value = '1';
             updateUI();
         }
 
@@ -351,7 +349,7 @@
 
         function showResultModal(item) {
             playWinFanfare();
-            speakResult(item.name); // 読み上げ実行
+            speakResult(item.name);
             
             document.getElementById('resultText').textContent = item.name;
             document.getElementById('modalContent').style.borderColor = item.color;
