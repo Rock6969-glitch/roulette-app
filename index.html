@@ -175,7 +175,7 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // Web Audio API による完全制御された電子音システム
+        // Web Audio API による電子音システム
         let audioCtx = null;
         let lastPlayedAngle = 0;
 
@@ -188,7 +188,7 @@
             }
         }
 
-        // カチッという歯切れの良い電子音を生成する関数（ファイル読込不要・遅延・残響なし）
+        // ピピッという歯切れの良い電子音
         function playTickSound() {
             if (!isSpinning) return;
             initAudio();
@@ -197,24 +197,20 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
 
-                // 高めの鋭い音（カチッという質感）
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.04);
+                osc.type = 'sine'; // ピープ音らしいクリアな正弦波
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // 高めのピッと鳴る音程
 
-                // 一瞬で音が消えるように設定（鳴りっぱなし・重なりを防止）
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03); // 一瞬で消える
 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
 
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.04);
+                osc.stop(audioCtx.currentTime + 0.03);
             } catch (e) {}
         }
 
-        // 当選時のファンファーレ音
         function playWinFanfare() {
             initAudio();
             try {
@@ -388,7 +384,7 @@
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            // 一定の角度（0.35ラジアン毎）に1回だけ音を鳴らす
+            // 一定の角度（0.35ラジアン毎）に進んだときに「ピピッ」と1回だけ鳴らす
             const angleStep = 0.35;
             if (Math.abs(currentAngle - lastPlayedAngle) >= angleStep) {
                 playTickSound();
@@ -574,7 +570,7 @@
                         fwCtx.fillStyle = p.color;
                         fwCtx.beginPath();
                         fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        fwCentere.fill(); // 修正：正しく描画
+                        fwCtx.fill();
                         fwCtx.restore();
                     }
                 });
