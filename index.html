@@ -95,13 +95,13 @@
 
     </main>
 
+    <!-- 結果ポップアップ＆花火モーダル -->
     <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <canvas id="fireworksCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-        <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-4 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
-            <div id="resultHeader" class="text-xs tracking-widest text-pink-400 font-bold uppercase">🎉 RESULT 🎉</div>
-            <div id="resultText" class="text-3xl font-black text-white neon-text break-words w-full"></div>
-            <p id="resultSubText" class="text-xs text-gray-400">結果が決まりました！</p>
-            <button onclick="closeResultModal()" class="mt-3 w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
+        <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-5 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
+            <div class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
+            <div id="resultText" class="text-4xl font-black text-white neon-text break-words w-full py-2"></div>
+            <button onclick="closeResultModal()" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
                 閉じる (続ける)
             </button>
         </div>
@@ -319,24 +319,6 @@
         function showResultModal(item) {
             playWinFanfare();
             document.getElementById('resultText').textContent = item.name;
-            
-            const headerEl = document.getElementById('resultHeader');
-            const subTextEl = document.getElementById('resultSubText');
-            
-            // ハズレや罰ゲームなどの判定（名前に「ハズレ」「罰」「残念」が含まれる場合など）
-            const lowerName = item.name.toLowerCase();
-            const isNegative = lowerName.includes('ハズレ') || lowerName.includes('外れ') || lowerName.includes('罰') || lowerName.includes('残念');
-
-            if (isNegative) {
-                headerEl.textContent = "🛑 RESULT";
-                headerEl.className = "text-xs tracking-widest text-yellow-400 font-bold uppercase";
-                subTextEl.textContent = "今回の結果はこちらです…";
-            } else {
-                headerEl.textContent = "🎉 WINNER 🎉";
-                headerEl.className = "text-xs tracking-widest text-pink-400 font-bold uppercase";
-                subTextEl.textContent = "おめでとうございます！";
-            }
-
             document.getElementById('modalContent').style.borderColor = item.color;
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
