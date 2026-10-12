@@ -49,18 +49,18 @@
             <h1 class="text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
                 ✨ LIVE ROULETTE ✨
             </h1>
-            <p class="text-[10px] md:text-xs text-gray-400 text-left">ライブ配信用カスタムルーレット</p>
+            <p class="text-[10px] md:text-xs text-gray-400 text-left">オート連チャン・音声読み上げ対応</p>
         </div>
         <button onclick="testSpeech()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-300 border border-white/10 transition-colors">
             🔊 音声テスト
         </button>
     </header>
 
-    <!-- メインコンテンツ (PCでは左右横並び 2カラムレイアウト) -->
+    <!-- メインコンテンツ -->
     <main class="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start justify-center gap-6 z-10 my-auto py-2">
         
         <!-- 左カラム：ルーレット本体 ＋ アクションボタン -->
-        <div class="flex flex-col items-center gap-5 w-full md:w-auto shrink-0">
+        <div class="flex flex-col items-center gap-4 w-full md:w-auto shrink-0">
             <div class="relative w-80 h-80 md:w-96 md:h-96 flex items-center justify-center">
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
                     <div class="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-red-500"></div>
@@ -76,17 +76,41 @@
             </div>
 
             <!-- アクションボタン群 -->
-            <div class="w-full max-w-xs md:max-w-none flex gap-3 px-1">
-                <button onclick="startSpin()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-sm tracking-wide">
-                    🚀 ルーレットを回す (Space)
-                </button>
-                <button onclick="resetEliminated()" class="px-4 py-3 rounded-xl font-bold glass-panel hover:bg-white/10 active:scale-98 transition-all text-xs md:text-sm text-gray-300">
-                    🔄 復活
-                </button>
+            <div class="w-full max-w-xs md:max-w-none flex flex-col gap-2 px-1">
+                <div class="flex gap-2">
+                    <button onclick="startSpin()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-xs md:text-sm tracking-wide">
+                        🚀 通常スピン (Space)
+                    </button>
+                    <button onclick="resetEliminated()" class="px-4 py-3 rounded-xl font-bold glass-panel hover:bg-white/10 active:scale-98 transition-all text-xs md:text-sm text-gray-300">
+                        🔄 復活
+                    </button>
+                </div>
+                
+                <!-- オート連チャン自由設定エリア -->
+                <div class="flex flex-col gap-2 glass-panel p-3 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-200 font-bold">🔄 オート連チャン設定</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- 回数入力（数値） -->
+                        <div class="flex items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 flex-1">
+                            <input type="number" id="autoCountInput" value="5" min="1" max="9999" class="w-12 bg-transparent text-center text-xs md:text-sm text-white focus:outline-none">
+                            <span class="text-xs text-gray-400">回</span>
+                        </div>
+                        <!-- 無限モード切り替えボタン -->
+                        <button id="infiniteToggleBtn" onclick="toggleInfiniteMode()" class="px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-gray-300 bg-black/40 hover:bg-white/10 transition-all shrink-0">
+                            ∞ 無限: OFF
+                        </button>
+                        <!-- 自動スタート / 停止ボタン -->
+                        <button id="autoSpinBtn" onclick="toggleAutoSpin()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0">
+                            自動スタート
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 右カラム：選択肢の追加・編集パネル (PCで広々表示) -->
+        <!-- 右カラム：選択肢の追加・編集パネル -->
         <div class="w-full max-w-md md:w-[420px] glass-panel rounded-2xl p-4 md:p-5 flex flex-col gap-3 shadow-xl">
             <h2 class="text-xs md:text-sm font-bold text-gray-200 flex items-center justify-between px-1">
                 <span>📋 選択肢と重みの調整</span>
@@ -105,7 +129,7 @@
                 </button>
             </div>
 
-            <!-- リスト一覧 (PCでしっかり高さを確保) -->
+            <!-- リスト一覧 -->
             <div id="itemList" class="flex flex-col gap-2 max-h-64 md:max-h-80 overflow-y-auto pr-1"></div>
         </div>
 
@@ -115,7 +139,7 @@
     <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <canvas id="fireworksCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
         <div id="modalContent" class="glass-panel neon-glow rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-5 animate-pop relative z-10 border border-pink-500/40 bg-gradient-to-b from-gray-900/90 to-purple-950/90">
-            <div class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
+            <div id="modalHeader" class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
             <div id="resultText" class="text-4xl font-black text-white neon-text break-words w-full py-2"></div>
             <button onclick="closeResultModal()" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
                 閉じる (続ける)
@@ -143,6 +167,12 @@
         let startTime = 0;
         let audioCtx = null;
         let fireworksAnimId = null;
+
+        // オートスピン用変数
+        let isAutoSpinning = false;
+        let isInfinite = false;
+        let remainingAutoCount = 0;
+        let autoTimeout = null;
 
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
@@ -306,8 +336,10 @@
             initAudio();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
+
             isSpinning = true;
             document.getElementById('centerSpinBtn').disabled = true;
+
             targetAngle = currentAngle + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2;
             startAngleVal = currentAngle;
             startTime = performance.now();
@@ -316,7 +348,7 @@
 
         function animateSpin(currentTime) {
             const elapsed = currentTime - startTime;
-            const duration = 4000;
+            const duration = 3000;
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
@@ -360,15 +392,102 @@
             playWinFanfare();
             speakResult(item.name);
             
+            const headerEl = document.getElementById('modalHeader');
+            if (isAutoSpinning) {
+                if (isInfinite) {
+                    headerEl.textContent = `✨ AUTO (無限モード) ✨`;
+                } else {
+                    headerEl.textContent = `✨ AUTO (残り ${remainingAutoCount}回) ✨`;
+                }
+            } else {
+                headerEl.textContent = "✨ RESULT ✨";
+            }
+
             document.getElementById('resultText').textContent = item.name;
             document.getElementById('modalContent').style.borderColor = item.color;
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
+
+            if (isAutoSpinning) {
+                autoTimeout = setTimeout(() => {
+                    closeResultModal();
+                    
+                    if (isInfinite || remainingAutoCount > 1) {
+                        if (!isInfinite) remainingAutoCount--;
+                        autoTimeout = setTimeout(() => {
+                            if (isAutoSpinning) startSpin();
+                        }, 800);
+                    } else {
+                        stopAutoSpin();
+                    }
+                }, 1800);
+            }
         }
 
         function closeResultModal() {
+            if (autoTimeout) clearTimeout(autoTimeout);
             document.getElementById('resultModal').classList.add('hidden');
             stopFireworks();
+        }
+
+        // 無限モードの切り替え
+        function toggleInfiniteMode() {
+            isInfinite = !isInfinite;
+            const btn = document.getElementById('infiniteToggleBtn');
+            const input = document.getElementById('autoCountInput');
+            
+            if (isInfinite) {
+                btn.textContent = "∞ 無限: ON";
+                btn.className = "px-3 py-1.5 rounded-lg border border-purple-500 text-xs font-bold text-purple-300 bg-purple-900/40 hover:bg-purple-900/60 transition-all shrink-0";
+                input.disabled = true;
+                input.classList.add('opacity-40');
+            } else {
+                btn.textContent = "∞ 無限: OFF";
+                btn.className = "px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-gray-300 bg-black/40 hover:bg-white/10 transition-all shrink-0";
+                input.disabled = false;
+                input.classList.remove('opacity-40');
+            }
+        }
+
+        function toggleAutoSpin() {
+            if (isAutoSpinning) {
+                stopAutoSpin();
+            } else {
+                const count = isInfinite ? 999999 : parseInt(document.getElementById('autoCountInput').value) || 1;
+                startAutoSpin(count);
+            }
+        }
+
+        function startAutoSpin(count) {
+            initAudio();
+            const activeItems = items.filter(i => !i.eliminated);
+            if (activeItems.length === 0) return;
+
+            isAutoSpinning = true;
+            remainingAutoCount = count;
+            
+            const btn = document.getElementById('autoSpinBtn');
+            btn.textContent = "🛑 停止する";
+            btn.className = "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-400 hover:to-pink-500 text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0";
+            
+            document.getElementById('autoCountInput').disabled = true;
+            document.getElementById('infiniteToggleBtn.disabled', true);
+
+            startSpin();
+        }
+
+        function stopAutoSpin() {
+            isAutoSpinning = false;
+            remainingAutoCount = 0;
+            if (autoTimeout) clearTimeout(autoTimeout);
+
+            const btn = document.getElementById('autoSpinBtn');
+            btn.textContent = "自動スタート";
+            btn.className = "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-all shrink-0";
+            
+            if (!isInfinite) {
+                document.getElementById('autoCountInput').disabled = false;
+            }
         }
 
         function startFireworks() {
@@ -417,7 +536,7 @@
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
-                startSpin();
+                if (!isAutoSpinning) startSpin();
             }
         });
 
