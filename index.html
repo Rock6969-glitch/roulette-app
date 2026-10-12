@@ -47,7 +47,7 @@
         <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text">
             ✨ LIVE ROULETTE ✨
         </h1>
-        <p class="text-xs text-gray-400 mt-1">スマホで操作・重み対応・超ド派手演出版</p>
+        <p class="text-xs text-gray-400 mt-1">スマホで操作・音声読み上げ対応</p>
     </header>
 
     <main class="w-full max-w-md flex flex-col items-center gap-6 z-10 mb-6">
@@ -170,6 +170,21 @@
                 osc.start(audioCtx.currentTime + index * 0.12);
                 osc.stop(audioCtx.currentTime + index * 0.12 + 0.4);
             });
+        }
+
+        // 音声読み上げ関数 (Web Speech API)
+        function speakResult(text) {
+            if ('speechSynthesis' in window) {
+                // 喋っている途中の音声があればキャンセル
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.1; // 少しだけテンポよく
+                utterance.pitch = 1.0;
+                
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
         function drawRoulette() {
@@ -318,6 +333,8 @@
 
         function showResultModal(item) {
             playWinFanfare();
+            speakResult(item.name); // 👈 ここで結果の項目名を音声読み上げ！
+            
             document.getElementById('resultText').textContent = item.name;
             document.getElementById('modalContent').style.borderColor = item.color;
             document.getElementById('resultModal').classList.remove('hidden');
