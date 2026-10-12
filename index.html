@@ -187,20 +187,24 @@
             }
         }
 
+        // 送信いただいた音源（ピーという電子音）を再現した回転音
         function playTickSound() {
             if (!audioCtx) return;
             try {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.03);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+                
+                // お送りいただいた音源に合わせたシャープでクリアな電子音の周波数
+                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // 高めのド (C6)
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.03);
+                osc.stop(audioCtx.currentTime + 0.04);
             } catch(e) {}
         }
 
@@ -356,7 +360,7 @@
 
         function animateSpin(currentTime) {
             const elapsed = currentTime - startTime;
-            const duration = 2000; // 2秒でよりスピーディに連チャン
+            const duration = 2000;
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
@@ -416,11 +420,9 @@
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
 
-            // --- オート連チャンの継続判定 ---
             if (isAutoSpinning) {
                 if (nextSpinTimer) clearTimeout(nextSpinTimer);
                 
-                // 1秒間結果を表示したあと、自動で閉じて次を回す
                 nextSpinTimer = setTimeout(() => {
                     document.getElementById('resultModal').classList.add('hidden');
                     stopFireworks();
@@ -428,7 +430,6 @@
                     if (isInfinite || remainingAutoCount > 1) {
                         if (!isInfinite) remainingAutoCount--;
                         
-                        // 0.3秒のインターバルを挟んで次のスピンを走らせる
                         nextSpinTimer = setTimeout(() => {
                             if (isAutoSpinning) {
                                 startSpin();
@@ -444,7 +445,7 @@
         function closeResultModal() {
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
-                stopAutoSpin(); // 手動で閉じたらオートも終了
+                stopAutoSpin();
             }
             document.getElementById('resultModal').classList.add('hidden');
             stopFireworks();
@@ -491,7 +492,6 @@
             
             document.getElementById('autoCountInput').disabled = true;
 
-            // スピン開始
             startSpin();
         }
 
