@@ -152,25 +152,25 @@
             }
         }
 
-        // ピコピコした楽しいクリック音（回転中）
+        // 送信いただいた音源のような軽快な電子クリック音に調整
         function playTickSound() {
             if (!audioCtx) return;
             try {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'square'; // ファミコンのようなレトロでピコピコした矩形波
+                osc.type = 'sine'; // やわらかくクリアな電子音
                 
-                // 高めの音程でリズミカルに鳴らす
-                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.04);
+                // ピッと軽快に高くなる音程
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.03);
                 
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.04);
+                osc.stop(audioCtx.currentTime + 0.03);
             } catch(e) {}
         }
 
@@ -321,7 +321,6 @@
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            // 回転中にピコピコ音を鳴らす頻度を調整
             if (Math.random() < 0.25) playTickSound();
             drawRoulette();
 
@@ -391,7 +390,7 @@
             }
             function loop() {
                 fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
-                particles.group = particles.forEach(p => {
+                particles.forEach(p => {
                     p.x += p.vx;
                     p.y += p.vy;
                     p.vy += 0.2;
