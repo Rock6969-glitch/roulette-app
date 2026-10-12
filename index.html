@@ -8,6 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    <!-- PWA用 マニフェスト -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#090a0f">
     <style>
         body {
             font-family: 'Outfit', 'Zen Maru Gothic', sans-serif;
@@ -49,7 +52,7 @@
             <h1 class="text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
                 ✨ LIVE ROULETTE ✨
             </h1>
-            <p class="text-[10px] md:text-xs text-gray-400 text-left">オート連チャン・音声読み上げ対応</p>
+            <p class="text-[10px] md:text-xs text-gray-400 text-left">PWA・オート連チャン・音声読み上げ対応</p>
         </div>
         <button onclick="testSpeech()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-300 border border-white/10 transition-colors">
             🔊 音声テスト
@@ -153,6 +156,11 @@
     </footer>
 
     <script>
+        // PWAのサービスワーカー登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {});
+        }
+
         let items = [
             { id: 1, name: "大当たり！", weight: 3, color: "#ec4899", eliminated: false },
             { id: 2, name: "ハズレ…", weight: 2, color: "#8b5cf6", eliminated: false },
@@ -165,8 +173,11 @@
         let targetAngle = 0;
         let startAngleVal = 0;
         let startTime = 0;
-        let audioCtx = null;
         let fireworksAnimId = null;
+
+        // 同梱した音声ファイル（tick.mp3）を読み込む
+        const tickSound = new Audio('./tick.mp3');
+        tickSound.volume = 0.6;
 
         // オートスピン用変数
         let isAutoSpinning = false;
@@ -178,47 +189,20 @@
         const ctx = canvas.getContext('2d');
         const colors = ["#ec4899", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
-
-        // シャープで歯切れの良い電子ビープ音
         function playTickSound() {
-            if (!audioCtx) return;
             try {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(1400, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.03);
+                let soundClone = tickSound.cloneNode();
+                soundClone.volume = 0.6;
+                soundClone.play().catch(e => {});
             } catch(e) {}
         }
 
         function playWinFanfare() {
-            if (!audioCtx) return;
-            const notes = [523.25, 659.25, 783.99, 1046.50];
-            notes.forEach((freq, index) => {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.12);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + index * 0.12);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.12 + 0.4);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(audioCtx.currentTime + index * 0.12);
-                osc.stop(audioCtx.currentTime + index * 0.12 + 0.4);
-            });
+            try {
+                let soundClone = tickSound.cloneNode();
+                soundClone.volume = 0.8;
+                soundClone.play().catch(e => {});
+            } catch(e) {}
         }
 
         function speakResult(text) {
@@ -235,7 +219,6 @@
         }
 
         function testSpeech() {
-            initAudio();
             speakResult("音声読み上げのテストです。");
         }
 
@@ -341,7 +324,6 @@
 
         function startSpin() {
             if (isSpinning) return;
-            initAudio();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
 
@@ -420,7 +402,7 @@
                 if (nextSpinTimer) clearTimeout(nextSpinTimer);
                 
                 nextSpinTimer = setTimeout(() => {
-                    document.getElementById('resultModal').classList.add('hidden');
+                    document.getElementById('resultModal'].classList.add('hidden');
                     stopFireworks();
 
                     if (isInfinite || remainingAutoCount > 1) {
@@ -461,6 +443,7 @@
                 btn.textContent = "∞ 無限: OFF";
                 btn.className = "px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-gray-300 bg-black/40 hover:bg-white/10 transition-all shrink-0";
                 input.disabled = false;
+                input.classList.add('opacity-40'); // 修正：クラス調整
                 input.classList.remove('opacity-40');
             }
         }
@@ -475,7 +458,6 @@
         }
 
         function startAutoSpin(count) {
-            initAudio();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
 
