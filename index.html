@@ -175,41 +175,58 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // 音声ファイル（tick.mp3）の準備
-        const tickSound = new Audio('./tick.mp3');
-        tickSound.volume = 0.6;
-        let spinDuration = 2000; // デフォルトの回転時間（ミリ秒）
+        // Web Audio API による電子音システム（ファイル不要・完全同期・重なりなし）
+        let audioCtx = null;
+        let lastPlayedAngle = 0;
 
-        // 音声の長さを自動取得してルーレットの回転時間に合わせる
-        tickSound.addEventListener('loadedmetadata', () => {
-            if (tickSound.duration && !isNaN(tickSound.duration)) {
-                spinDuration = tickSound.duration * 1000; // 秒をミリ秒に変換
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        });
-
-        // 回転音を1回だけ再生する関数
-        function playTickSound() {
-            if (!isSpinning) return; // モーダル表示中や停止時は絶対に鳴らさない
-            try {
-                tickSound.pause();
-                tickSound.currentTime = 0;
-                tickSound.play().catch(e => {});
-            } catch(e) {}
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
-        function stopTickSound() {
+        function playTickSound() {
+            if (!isSpinning) return;
+            initAudio();
+
             try {
-                tickSound.pause();
-                tickSound.currentTime = 0;
-            } catch(e) {}
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.03);
+            } catch (e) {}
         }
 
         function playWinFanfare() {
+            initAudio();
             try {
-                let fanfare = new Audio('./tick.mp3');
-                fanfare.volume = 0.8;
-                fanfare.play().catch(e => {});
-            } catch(e) {}
+                const now = audioCtx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.08);
+                    gain.gain.setValueAtTime(0.3, now + index * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.3);
+                });
+            } catch (e) {}
         }
 
         // オートスピン用変数
@@ -236,6 +253,7 @@
         }
 
         function testSpeech() {
+            initAudio();
             speakResult("音声読み上げのテストです。");
         }
 
@@ -332,6 +350,7 @@
         function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
         function handleSpinClick() {
+            initAudio();
             if (isAutoSpinning) {
                 stopAutoSpin();
                 return;
@@ -341,7 +360,6 @@
 
         function startSpin() {
             if (isSpinning) return;
-            stopTickSound();
 
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
@@ -349,13 +367,10 @@
             isSpinning = true;
             document.getElementById('centerSpinBtn').disabled = true;
 
-            targetAngle = currentAngle + (4 + Math.random() * 2) * Math.PI * 2 + Math.random() * Math.PI * 2;
+            targetAngle = currentAngle + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2;
             startAngleVal = currentAngle;
+            lastPlayedAngle = currentAngle;
             startTime = performance.now();
-
-            // 音声の長さに合わせて回転を開始し、音を再生する
-            playTickSound();
-
             requestAnimationFrame(animateSpin);
         }
 
@@ -363,10 +378,16 @@
             if (!isSpinning) return;
 
             const elapsed = currentTime - startTime;
-            const duration = spinDuration; // 音声ファイルの秒数に同期
+            const duration = 2000;
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
+            
+            const angleStep = 0.35;
+            if (Math.abs(currentAngle - lastPlayedAngle) >= angleStep) {
+                playTickSound();
+                lastPlayedAngle = currentAngle;
+            }
 
             drawRoulette();
 
@@ -375,14 +396,12 @@
             } else {
                 isSpinning = false;
                 document.getElementById('centerSpinBtn').disabled = false;
-                stopTickSound(); // 回転終了時に音を確実にストップ
                 determineWinner();
             }
         }
 
         function determineWinner() {
             isSpinning = false;
-            stopTickSound();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
             const totalWeight = activeItems.reduce((sum, item) => sum + item.weight, 0);
@@ -407,7 +426,6 @@
 
         function showResultModal(item) {
             isSpinning = false;
-            stopTickSound(); // ポップアップ表示時は絶対に回転音が鳴らないようにする
             playWinFanfare();
             speakResult(item.name);
             
@@ -451,7 +469,6 @@
 
         function closeResultModal() {
             isSpinning = false;
-            stopTickSound();
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
             if (isAutoSpinning) {
                 stopAutoSpin();
@@ -479,6 +496,7 @@
         }
 
         function toggleAutoSpin() {
+            initAudio();
             if (isAutoSpinning) {
                 stopAutoSpin();
             } else {
@@ -505,7 +523,6 @@
 
         function stopAutoSpin() {
             isSpinning = false;
-            stopTickSound();
             isAutoSpinning = false;
             remainingAutoCount = 0;
             if (nextSpinTimer) clearTimeout(nextSpinTimer);
