@@ -175,16 +175,76 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // 音声要素をあらかじめ複数プールして重複＆鳴りっぱなしを完全防止
-        const audioPool = [];
-        const poolSize = 5;
-        for (let i = 0; i < poolSize; i++) {
-            let audio = new Audio('./tick.mp3');
-            audio.volume = 0.6;
-            audioPool.push(audio);
-        }
-        let audioPoolIndex = 0;
+        // Web Audio APIを用いた確実な音声管理
+        let audioCtx = null;
+        let audioBuffer = null;
+        let activeAudioSources = []; // 現在鳴っている音源のリスト
         let lastPlayedAngle = 0;
+
+        // 音声ファイルを事前に読み込んでデコードしておく
+        async function loadAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const response = await fetch('./tick.mp3');
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            } catch (e) {
+                console.log('音声のロードに失敗しました', e);
+            }
+        }
+        loadAudio();
+
+        function playTickSound() {
+            if (!isSpinning || !audioCtx || !audioBuffer) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            try {
+                const source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.6;
+
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                source.start(0);
+                activeAudioSources.push(source);
+
+                source.onended = () => {
+                    activeAudioSources = activeAudioSources.filter(s => s !== source);
+                };
+            } catch (e) {}
+        }
+
+        // 鳴っている音をすべて一瞬で完全にストップする関数
+        function stopAllTickSounds() {
+            activeAudioSources.forEach(source => {
+                try {
+                    source.stop();
+                    source.disconnect();
+                } catch (e) {}
+            });
+            activeAudioSources = [];
+        }
+
+        function playWinFanfare() {
+            if (!audioCtx || !audioBuffer) return;
+            try {
+                const source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.9;
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                source.start(0);
+                activeAudioSources.push(source);
+            } catch (e) {}
+        }
 
         // オートスピン用変数
         let isAutoSpinning = false;
@@ -195,37 +255,6 @@
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
         const colors = ["#ec4899", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
-
-        function playTickSound() {
-            if (!isSpinning) return; // 回転中でなければ絶対に鳴らさない
-            try {
-                let audio = audioPool[audioPoolIndex];
-                audioPoolIndex = (audioPoolIndex + 1) % poolSize;
-                audio.pause();
-                audio.currentTime = 0;
-                audio.play().catch(e => {});
-            } catch(e) {}
-        }
-
-        // すべての音を強制停止する関数
-        function stopAllTickSounds() {
-            audioPool.forEach(audio => {
-                try {
-                    audio.pause();
-                    audio.currentTime = 0;
-                } catch(e) {}
-            });
-        }
-
-        function playWinFanfare() {
-            try {
-                let audio = audioPool[0];
-                audio.pause();
-                audio.currentTime = 0;
-                audio.volume = 0.8;
-                audio.play().catch(e => {});
-            } catch(e) {}
-        }
 
         function speakResult(text) {
             if (!('speechSynthesis' in window)) return;
@@ -241,6 +270,7 @@
         }
 
         function testSpeech() {
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             speakResult("音声読み上げのテストです。");
         }
 
@@ -337,6 +367,9 @@
         function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
         function handleSpinClick() {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             if (isAutoSpinning) {
                 stopAutoSpin();
                 return;
@@ -362,7 +395,7 @@
         }
 
         function animateSpin(currentTime) {
-            if (!isSpinning) return; // 念のための安全ガード
+            if (!isSpinning) return;
 
             const elapsed = currentTime - startTime;
             const duration = 2000;
@@ -370,8 +403,8 @@
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
             
-            // 一定の角度（約0.3ラジアン）進んだときに1回だけ鳴らす
-            const angleStep = 0.3;
+            // 一定の角度（0.35ラジアン毎）に1回だけ音を鳴らす（重なり防止）
+            const angleStep = 0.35;
             if (Math.abs(currentAngle - lastPlayedAngle) >= angleStep) {
                 playTickSound();
                 lastPlayedAngle = currentAngle;
@@ -384,12 +417,13 @@
             } else {
                 isSpinning = false;
                 document.getElementById('centerSpinBtn').disabled = false;
-                stopAllTickSounds(); // 回転終了時に確実に停止
+                stopAllTickSounds(); // 確実に停止
                 determineWinner();
             }
         }
 
         function determineWinner() {
+            isSpinning = false;
             stopAllTickSounds();
             const activeItems = items.filter(i => !i.eliminated);
             if (activeItems.length === 0) return;
@@ -415,7 +449,7 @@
 
         function showResultModal(item) {
             isSpinning = false;
-            stopAllTickSounds(); // モーダル表示時に音を確実に完全停止
+            stopAllTickSounds(); // ポップアップ表示時に音を完全強制シャットダウン
             playWinFanfare();
             speakResult(item.name);
             
@@ -487,6 +521,7 @@
         }
 
         function toggleAutoSpin() {
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             if (isAutoSpinning) {
                 stopAutoSpin();
             } else {
