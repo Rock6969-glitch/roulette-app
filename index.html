@@ -68,7 +68,7 @@
                 
                 <div class="relative w-72 h-72 md:w-88 md:h-88 rounded-full p-2.5 glass-panel neon-glow flex items-center justify-center shadow-2xl">
                     <canvas id="rouletteCanvas" width="340" height="340" class="w-full h-full rounded-full cursor-pointer transition-transform duration-75"></canvas>
-                    <button id="centerSpinBtn" onclick="startSpin()" class="absolute w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-600 font-extrabold text-sm md:text-base text-white shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center z-20 border-2 border-white/30">
+                    <button id="centerSpinBtn" onclick="handleSpinClick()" class="absolute w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-600 font-extrabold text-sm md:text-base text-white shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center z-20 border-2 border-white/30">
                         <span class="text-[10px] md:text-xs tracking-widest opacity-80">START</span>
                         <span class="text-base md:text-lg">回す！</span>
                     </button>
@@ -78,7 +78,7 @@
             <!-- アクションボタン群 -->
             <div class="w-full max-w-xs md:max-w-none flex flex-col gap-2 px-1">
                 <div class="flex gap-2">
-                    <button onclick="startSpin()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-xs md:text-sm tracking-wide">
+                    <button onclick="handleSpinClick()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-98 shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all text-xs md:text-sm tracking-wide">
                         🚀 通常スピン (Space)
                     </button>
                     <button onclick="resetEliminated()" class="px-4 py-3 rounded-xl font-bold glass-panel hover:bg-white/10 active:scale-98 transition-all text-xs md:text-sm text-gray-300">
@@ -142,7 +142,7 @@
             <div id="modalHeader" class="text-xs tracking-widest text-pink-400 font-bold uppercase">✨ RESULT ✨</div>
             <div id="resultText" class="text-4xl font-black text-white neon-text break-words w-full py-2"></div>
             <button onclick="closeResultModal()" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all text-sm">
-                閉じる (手動停止)
+                閉じる (停止)
             </button>
         </div>
     </div>
@@ -172,7 +172,7 @@
         let isAutoSpinning = false;
         let isInfinite = false;
         let remainingAutoCount = 0;
-        let autoStepTimeout = null;
+        let autoStepTimer = null;
 
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
@@ -331,6 +331,14 @@
         function updateItemWeight(id, val) { const item = items.find(i => i.id === id); if (item) { item.weight = Math.max(1, parseInt(val) || 1); updateUI(); } }
         function updateItemColor(id, val) { const item = items.find(i => i.id === id); if (item) { item.color = val; drawRoulette(); } }
 
+        // 通常スピンボタンが押されたとき
+        function handleSpinClick() {
+            if (isAutoSpinning) {
+                stopAutoSpin(); // オート中に通常ボタンを押したらオート停止
+            }
+            startSpin();
+        }
+
         function startSpin() {
             if (isSpinning) return;
             initAudio();
@@ -348,7 +356,7 @@
 
         function animateSpin(currentTime) {
             const elapsed = currentTime - startTime;
-            const duration = 2500; // 2.5秒でテンポよく回転
+            const duration = 2500;
             const progress = Math.min(elapsed / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
             currentAngle = startAngleVal + (targetAngle - startAngleVal) * easeOut;
@@ -408,30 +416,30 @@
             document.getElementById('resultModal').classList.remove('hidden');
             startFireworks();
 
-            // オートスピン中の場合：結果表示後、自動でモーダルを閉じて次の回転へ
+            // オートスピン中の場合、1.2秒後に自動でモーダルを閉じて次の回転へ
             if (isAutoSpinning) {
-                if (autoStepTimeout) clearTimeout(autoStepTimeout);
-                autoStepTimeout = setTimeout(() => {
+                if (autoStepTimer) clearTimeout(autoStepTimer);
+                autoStepTimer = setTimeout(() => {
                     document.getElementById('resultModal').classList.add('hidden');
                     stopFireworks();
 
                     if (isInfinite || remainingAutoCount > 1) {
                         if (!isInfinite) remainingAutoCount--;
-                        // 少しウェイトを置いてから次を回す
-                        autoStepTimeout = setTimeout(() => {
+                        // 少しウェイトを置いてから次のスピンへ
+                        autoStepTimer = setTimeout(() => {
                             if (isAutoSpinning) startSpin();
-                        }, 500);
+                        }, 400);
                     } else {
                         stopAutoSpin();
                     }
-                }, 1500);
+                }, 1200);
             }
         }
 
         function closeResultModal() {
-            if (autoStepTimeout) clearTimeout(autoStepTimeout);
+            if (autoStepTimer) clearTimeout(autoStepTimer);
             if (isAutoSpinning) {
-                stopAutoSpin(); // 手動で「閉じる」を押した場合はオートも停止する
+                stopAutoSpin(); // 手動で閉じたらオートも終了
             }
             document.getElementById('resultModal').classList.add('hidden');
             stopFireworks();
@@ -478,13 +486,14 @@
             
             document.getElementById('autoCountInput').disabled = true;
 
+            // 即座に最初のスピンを開始
             startSpin();
         }
 
         function stopAutoSpin() {
             isAutoSpinning = false;
             remainingAutoCount = 0;
-            if (autoStepTimeout) clearTimeout(autoStepTimeout);
+            if (autoStepTimer) clearTimeout(autoStepTimer);
 
             const btn = document.getElementById('autoSpinBtn');
             btn.textContent = "自動スタート";
@@ -543,7 +552,7 @@
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
-                if (!isAutoSpinning) startSpin();
+                handleSpinClick();
             }
         });
 
