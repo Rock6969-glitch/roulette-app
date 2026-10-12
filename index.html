@@ -43,11 +43,17 @@
     <div class="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
-    <header class="w-full max-w-md text-center py-3 z-10">
-        <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text">
-            ✨ LIVE ROULETTE ✨
-        </h1>
-        <p class="text-xs text-gray-400 mt-1">スマホで操作・音声読み上げ対応</p>
+    <header class="w-full max-w-md text-center py-3 z-10 flex items-center justify-between px-2">
+        <div>
+            <h1 class="text-xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
+                ✨ LIVE ROULETTE ✨
+            </h1>
+            <p class="text-[10px] text-gray-400 text-left">音声読み上げ対応版</p>
+        </div>
+        <!-- 音声テスト用ボタン -->
+        <button onclick="testSpeech()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-gray-300 border border-white/10">
+            🔊 音声テスト
+        </button>
     </header>
 
     <main class="w-full max-w-md flex flex-col items-center gap-6 z-10 mb-6">
@@ -172,19 +178,31 @@
             });
         }
 
-        // 音声読み上げ関数 (Web Speech API)
+        // 確実な音声読み上げ関数
         function speakResult(text) {
-            if ('speechSynthesis' in window) {
-                // 喋っている途中の音声があればキャンセル
-                window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ja-JP';
-                utterance.rate = 1.1; // 少しだけテンポよく
-                utterance.pitch = 1.0;
-                
-                window.speechSynthesis.speak(utterance);
+            if (!('speechSynthesis' in window)) return;
+            
+            window.speechSynthesis.cancel(); // 既存の音声を停止
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.1;
+            utterance.pitch = 1.0;
+
+            // iOS (Safari) などの音声エンジン対策で一度空の音声を発火させるか、明示的に日本語音声を探す
+            const voices = window.speechSynthesis.getVoices();
+            const jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
+            if (jpVoice) {
+                utterance.voice = jpVoice;
             }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // テストボタン用
+        function testSpeech() {
+            initAudio();
+            speakResult("音声読み上げのテストです。正常に動作しています。");
         }
 
         function drawRoulette() {
@@ -333,7 +351,7 @@
 
         function showResultModal(item) {
             playWinFanfare();
-            speakResult(item.name); // 👈 ここで結果の項目名を音声読み上げ！
+            speakResult(item.name); // 読み上げ実行
             
             document.getElementById('resultText').textContent = item.name;
             document.getElementById('modalContent').style.borderColor = item.color;
