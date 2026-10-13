@@ -47,16 +47,29 @@
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
     <!-- ヘッダー -->
-    <header class="w-full max-w-4xl text-center py-2 z-10 flex items-center justify-between px-3">
+    <header class="w-full max-w-4xl text-center py-2 z-10 flex flex-col md:flex-row items-center justify-between gap-3 px-3">
         <div>
             <h1 class="text-xl md:text-2xl font-black tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent neon-text text-left">
                 ✨ LIVE ROULETTE ✨
             </h1>
             <p class="text-[10px] md:text-xs text-gray-400 text-left">PWA・オート連チャン・音声読み上げ対応</p>
         </div>
-        <button onclick="testSpeech()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-300 border border-white/10 transition-colors">
-            🔊 音声テスト
-        </button>
+
+        <!-- 音声・効果音の切り替えスイッチ群 -->
+        <div class="flex items-center gap-3 glass-panel px-3 py-2 rounded-xl text-xs">
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" id="soundToggle" checked class="w-4 h-4 rounded accent-pink-500 cursor-pointer">
+                <span class="text-gray-300 font-bold">🔊 効果音</span>
+            </label>
+            <div class="w-[1px] h-4 bg-white/20"></div>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" id="speechToggle" checked class="w-4 h-4 rounded accent-purple-500 cursor-pointer">
+                <span class="text-gray-300 font-bold">🗣️ 読み上げ</span>
+            </label>
+            <button onclick="testSpeech()" class="ml-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-300 border border-white/10 transition-colors">
+                テスト
+            </button>
+        </div>
     </header>
 
     <!-- メインコンテンツ -->
@@ -175,7 +188,7 @@
         let startTime = 0;
         let fireworksAnimId = null;
 
-        // Web Audio API による電子音システム（ファイル不要・完全同期・重なりなし）
+        // Web Audio API による電子音システム
         let audioCtx = null;
         let lastPlayedAngle = 0;
 
@@ -189,6 +202,8 @@
         }
 
         function playTickSound() {
+            const soundToggle = document.getElementById('soundToggle');
+            if (!soundToggle || !soundToggle.checked) return; // 効果音OFFなら鳴らさない
             if (!isSpinning) return;
             initAudio();
 
@@ -211,6 +226,8 @@
         }
 
         function playWinFanfare() {
+            const soundToggle = document.getElementById('soundToggle');
+            if (!soundToggle || !soundToggle.checked) return; // 効果音OFFなら鳴らさない
             initAudio();
             try {
                 const now = audioCtx.currentTime;
@@ -229,6 +246,37 @@
             } catch (e) {}
         }
 
+        // 音声合成インスタンスの保持
+        let currentUtterance = null;
+
+        function speakResult(text) {
+            const speechToggle = document.getElementById('speechToggle');
+            if (!speechToggle || !speechToggle.checked) return; // 読み上げOFFなら喋らない
+            if (!('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel();
+
+            setTimeout(() => {
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                currentUtterance.lang = 'ja-JP';
+                currentUtterance.rate = 1.1;
+                currentUtterance.pitch = 1.0;
+
+                const voices = window.speechSynthesis.getVoices();
+                const jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
+                if (jpVoice) {
+                    currentUtterance.voice = jpVoice;
+                }
+
+                window.speechSynthesis.speak(currentUtterance);
+            }, 50);
+        }
+
+        function testSpeech() {
+            initAudio();
+            speakResult("音声読み上げのテストです。");
+        }
+
         // オートスピン用変数
         let isAutoSpinning = false;
         let isInfinite = false;
@@ -238,24 +286,6 @@
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
         const colors = ["#ec4899", "#8b5cf6", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#6366f1"];
-
-        function speakResult(text) {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.1;
-            utterance.pitch = 1.0;
-            const voices = window.speechSynthesis.getVoices();
-            const jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang === 'ja_JP');
-            if (jpVoice) utterance.voice = jpVoice;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function testSpeech() {
-            initAudio();
-            speakResult("音声読み上げのテストです。");
-        }
 
         function drawRoulette() {
             const activeItems = items.filter(i => !i.eliminated);
